@@ -358,7 +358,22 @@ class instr_trace_item;
             instr_tracer_pkg::C_ADDW:         s = this.printRInstr("c.addw");
             instr_tracer_pkg::C_NOP:          s = this.printMnemonic("c.nop");
             instr_tracer_pkg::C_EBREAK:       s = this.printMnemonic("c.ebreak");
-            default:                          s = this.printMnemonic("INVALID");
+            default: begin
+
+                // RVV introduces a new major opcode OP-V
+                localparam OpcodeV = 7'b101_0111;
+
+                case ( instr[6:0] )
+                    // NOTE: this is not accurate, since some OpcodeV encodings are invalid
+                    OpcodeV                 : s = this.printMnemonic("vector");
+                    // NOTE: this is not accurate, since some encodings are might still be invalid
+                    riscv::OpcodeLoadFp     : s = this.printMnemonic("(?)vector load");
+                    riscv::OpcodeStoreFp    : s = this.printMnemonic("(?)vector store");
+                    riscv::OpcodeAmo        : s = this.printMnemonic("(?)vector amo");
+                    default                 : s = this.printMnemonic("INVALID");
+                endcase
+
+            end
         endcase
 
         s = $sformatf("%8dns %8d %s %h %h %h %-36s", simtime,
@@ -432,6 +447,13 @@ class instr_trace_item;
                 s = $sformatf("%s VA: %x PA: %x", s, vaddress, this.paddr);
             end
         endcase
+
+        if ( instr[6:0] inside {riscv::OpcodeLoadFp, riscv::OpcodeStoreFp, riscv::OpcodeAmo } ) begin
+            logic [riscv::VLEN-1:0] vaddress = gp_reg_file[read_regs[0]] + this.imm;
+            s = $sformatf("%s VA: %x PA: %x", s, vaddress, this.paddr);
+        end
+
+
         return s;
     endfunction : printInstr
 

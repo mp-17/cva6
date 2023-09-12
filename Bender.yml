@@ -195,6 +195,15 @@ sources:
       - core/cache_subsystem/cva6_icache.sv
       - core/cache_subsystem/wt_cache_subsystem.sv
       - core/cache_subsystem/wt_axi_adapter.sv
+      - core/cache_subsystem/tag_cmp.sv
+      - core/cache_subsystem/cache_ctrl.sv
+      - core/cache_subsystem/amo_alu.sv
+      - core/cache_subsystem/wt_l15_adapter.sv
+      # - corev_apu/tb/axi_adapter.sv
+      - core/cache_subsystem/miss_handler.sv
+      - core/cache_subsystem/std_nbdcache.sv
+      - core/cache_subsystem/cva6_icache_axi_wrapper.sv
+      - core/cache_subsystem/std_cache_subsystem.sv
 
       # Physical Memory Protection
       # NOTE: pmp.sv modified for DSIM (unchanged for other simulators)
@@ -218,10 +227,15 @@ sources:
           - common/local/util
         files:
           - common/local/util/tc_sram_fpga_wrapper.sv
+          - vendor/pulp-platform/fpga-support/rtl/SyncSpRamBeNx64.sv
+          - vendor/pulp-platform/fpga-support/rtl/SyncDpRam.sv
+          - vendor/pulp-platform/fpga-support/rtl/AsyncDpRam.sv
+          - vendor/pulp-platform/fpga-support/rtl/AsyncThreePortRam.sv
 
       - target: not(synthesis)
         include_dirs:
           - core/include
+          - common/local/util
         files:
           # Tracer (behavioral code, not RTL)
           - core/include/instr_tracer_pkg.sv

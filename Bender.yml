@@ -266,6 +266,9 @@ sources:
         files:
           - common/local/util/tc_sram_fpga_wrapper.sv
           - vendor/pulp-platform/fpga-support/rtl/SyncSpRamBeNx64.sv
+          - vendor/pulp-platform/fpga-support/rtl/SyncDpRam.sv
+          - vendor/pulp-platform/fpga-support/rtl/AsyncDpRam.sv
+          - vendor/pulp-platform/fpga-support/rtl/AsyncThreePortRam.sv
 
       - target: not(synthesis)
         include_dirs:

@@ -232,11 +232,8 @@ module acc_dispatcher import ariane_pkg::*; import riscv::*; (
   assign acc_trans_id_o  = acc_resp_i.trans_id;
   assign acc_result_o    = acc_resp_i.result;
   assign acc_valid_o     = acc_resp_i.resp_valid;
-  assign acc_exception_o = '{
-      cause: riscv::ILLEGAL_INSTR,
-      tval : '0,
-      valid: acc_resp_i.error
-    };
+  assign acc_exception_o = acc_resp_i.exception;
+
   // Always ready to receive responses
   assign acc_req_o.resp_ready = 1'b1;
 

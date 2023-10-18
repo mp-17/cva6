@@ -38,6 +38,31 @@ module cva6 import ariane_pkg::*; #(
   // Timer facilities
   input  logic                         time_irq_i,   // timer interrupt in (async)
   input  logic                         debug_req_i,  // debug request (async)
+
+`ifdef ARIANE_ACCELERATOR_PORT
+  // Invalidation requests
+  output logic                         acc_cons_en_o,
+  input  logic [63:0]                  inval_addr_i,
+  input  logic                         inval_valid_i,
+  output logic                         inval_ready_o,
+
+  // CSR to accelerator
+  output logic                            en_ld_st_translation_o,
+
+  // MMU interface with accelerator
+  input  exception_t                      acc_mmu_misaligned_ex_i,
+  input  logic                            acc_mmu_req_i,        // request address translation
+  input  logic [riscv::VLEN-1:0]          acc_mmu_vaddr_i,      // virtual address in
+  input  logic                            acc_mmu_is_store_i,   // the translation is requested by a store
+  // if we need to walk the page table we can't grant in the same cycle
+  // Cycle 0
+  output logic                            acc_mmu_dtlb_hit_o,   // sent in the same cycle as the request if translation hits in the DTLB
+  output logic [riscv::PPNW-1:0]          acc_mmu_dtlb_ppn_o,   // ppn (send same cycle as hit)
+  // Cycle 1
+  output logic                            acc_mmu_valid_o,      // translation is valid
+  output logic [riscv::PLEN-1:0]          acc_mmu_paddr_o,      // translated address
+  output exception_t                      acc_mmu_exception_o,  // address translation threw an exception
+`endif
   // RISC-V formal interface port (`rvfi`):
   // Can be left open when formal tracing is not needed.
   output ariane_pkg::rvfi_port_t       rvfi_o,
@@ -550,7 +575,17 @@ module cva6 import ariane_pkg::*; #(
     .mem_paddr_o            ( mem_paddr                   ),
     .lsu_rmask_o            ( lsu_rmask                   ),
     .lsu_wmask_o            ( lsu_wmask                   ),
-    .lsu_addr_trans_id_o    ( lsu_addr_trans_id           )
+    .lsu_addr_trans_id_o    ( lsu_addr_trans_id           ),
+    // MMU interface with accelerator
+    .acc_mmu_misaligned_ex_i( acc_mmu_misaligned_ex_i     ),
+    .acc_mmu_req_i          ( acc_mmu_req_i               ),
+    .acc_mmu_vaddr_i        ( acc_mmu_vaddr_i             ),
+    .acc_mmu_is_store_i     ( acc_mmu_is_store_i          ),
+    .acc_mmu_dtlb_hit_o     ( acc_mmu_dtlb_hit_o          ),
+    .acc_mmu_dtlb_ppn_o     ( acc_mmu_dtlb_ppn_o          ),
+    .acc_mmu_valid_o        ( acc_mmu_valid_o             ),
+    .acc_mmu_paddr_o        ( acc_mmu_paddr_o             ),
+    .acc_mmu_exception_o    ( acc_mmu_exception_o         )
   );
 
   // ---------
@@ -846,6 +881,7 @@ module cva6 import ariane_pkg::*; #(
   // ----------------
   // Accelerator
   // ----------------
+  assign en_ld_st_translation_o = en_ld_st_translation_csr_ex;
 
   if (ENABLE_ACCELERATOR) begin: gen_accelerator
     acc_pkg::accelerator_req_t acc_req;

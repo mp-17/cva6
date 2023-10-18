@@ -73,6 +73,20 @@ module load_store_unit
     input logic en_ld_st_translation_i,
     input logic en_ld_st_g_translation_i, // enable G-stage translation for load/stores
 
+    // MMU interface with accelerator
+    input  exception_t                          acc_mmu_misaligned_ex_i,
+    input  logic                                acc_mmu_req_i,        // request address translation
+    input  logic [riscv::VLEN-1:0]              acc_mmu_vaddr_i,      // virtual address in
+    input  logic                                acc_mmu_is_store_i,   // the translation is requested by a store
+    // if we need to walk the page table we can't grant in the same cycle
+    // Cycle 0
+    output logic                                acc_mmu_dtlb_hit_o,   // sent in the same cycle as the request if translation hits in the DTLB
+    output logic [riscv::PPNW-1:0]              acc_mmu_dtlb_ppn_o,   // ppn (send same cycle as hit)
+    // Cycle 1
+    output logic                                acc_mmu_valid_o,      // translation is valid
+    output logic [riscv::PLEN-1:0]              acc_mmu_paddr_o,      // translated address
+    output exception_t                          acc_mmu_exception_o,  // address translation threw an exception
+
     // Instruction cache input request - CACHES
     input  icache_arsp_t icache_areq_i,
     // Instruction cache output request - CACHES
@@ -341,6 +355,15 @@ module load_store_unit
     end
   end
 
+  // ------------------
+  // MMU Multiplexing
+  // ------------------
+  // Mock signals
+  assign acc_mmu_dtlb_hit_o = '0;
+  assign acc_mmu_dtlb_ppn_o = '0;
+  assign acc_mmu_valid_o    = '0;
+  assign acc_mmu_paddr_o    = '0;
+  assign acc_mmu_exception_o = '0;
 
   logic store_buffer_empty;
   // ------------------
@@ -684,4 +707,3 @@ module load_store_unit
   assign rvfi_lsu_ctrl_o = lsu_ctrl;
 
 endmodule
-

@@ -84,6 +84,10 @@ module ptw import ariane_pkg::*; #(
     } state_q, state_d;
 
     // SV39 defines three levels of page tables
+    // NOTE: these levels are inverted w.r.t. the spec, i.e for sv39:
+    // LVL1 means i=2
+    // LVL2 means i=1
+    // LVL3 means i=0
     enum logic [1:0] {
         LVL1, LVL2, LVL3
     } ptw_lvl_q, ptw_lvl_n;
@@ -171,11 +175,13 @@ module ptw import ariane_pkg::*; #(
     //    is allowed by the pte.r, pte.w, and pte.x bits. If not, stop and
     //    raise an access exception. Otherwise, the translation is successful.
     //    Set pte.a to 1, and, if the memory access is a store, set pte.d to 1.
+    //      NOTE: This cannot be done in hardware by ptw
     //    The translated physical address is given as follows:
     //      - pa.pgoff = va.pgoff.
     //      - If i > 0, then this is a superpage translation and
     //        pa.ppn[i-1:0] = va.vpn[i-1:0].
     //      - pa.ppn[LEVELS-1:i] = pte.ppn[LEVELS-1:i].
+    // NOTE: further step 6. is listed below
     always_comb begin : ptw
         // default assignments
         // PTW memory interface
@@ -207,8 +213,11 @@ module ptw import ariane_pkg::*; #(
                 ptw_lvl_n        = LVL1;
                 global_mapping_n = 1'b0;
                 is_instr_ptw_n   = 1'b0;
+                // NOTE: this module must explicitly only support sv39, the section of
+                // vaddr to be used for the pptr should be hardwired! riscv::SV=39
                 // if we got an ITLB miss
                 if (enable_translation_i & itlb_access_i & ~itlb_hit_i & ~dtlb_access_i) begin
+                    // ptw_pptr_n          = {satp_ppn_i, itlb_vaddr_i[38:30], 3'b0};
                     ptw_pptr_n          = {satp_ppn_i, itlb_vaddr_i[riscv::SV-1:30], 3'b0};
                     is_instr_ptw_n      = 1'b1;
                     tlb_update_asid_n   = asid_i;
@@ -217,6 +226,10 @@ module ptw import ariane_pkg::*; #(
                     itlb_miss_o         = 1'b1;
                 // we got an DTLB miss
                 end else if (en_ld_st_translation_i & dtlb_access_i & ~dtlb_hit_i) begin
+                    // NOTE: this module must explicitly only support sv39, the section of
+                    // vaddr to be used for the pptr should be hardwired!
+                    // ptw_pptr_n          = {satp_ppn_i, dtlb_vaddr_i[38:30], 3'b0};
+                    // In the spec naming, for sv39 onwards, vaddr[38:30] = vaddr.vpn[2]
                     ptw_pptr_n          = {satp_ppn_i, dtlb_vaddr_i[riscv::SV-1:30], 3'b0};
                     tlb_update_asid_n   = asid_i;
                     vaddr_n             = dtlb_vaddr_i;
@@ -257,7 +270,7 @@ module ptw import ariane_pkg::*; #(
                         state_d = IDLE;
                         // it is a valid PTE
                         // if pte.r = 1 or pte.x = 1 it is a valid PTE
-                        if (pte.r || pte.x) begin
+                        if (pte.r || pte.x) begin // leaf PTE
                             // Valid translation found (either 1G, 2M or 4K entry)
                             if (is_instr_ptw_q) begin
                                 // ------------
@@ -296,10 +309,12 @@ module ptw import ariane_pkg::*; #(
                             // check if the ppn is correctly aligned:
                             // 6. If i > 0 and pa.ppn[i − 1 : 0] != 0, this is a misaligned superpage; stop and raise a page-fault
                             // exception.
+                            // NOTE: pte.ppn[17:0] is pte[27:10] from the spec
                             if (ptw_lvl_q == LVL1 && pte.ppn[17:0] != '0) begin
                                 state_d             = PROPAGATE_ERROR;
                                 dtlb_update_o.valid = 1'b0;
                                 itlb_update_o.valid = 1'b0;
+                            // NOTE: pte.ppn[8:0] is pte[18:10] from the spec
                             end else if (ptw_lvl_q == LVL2 && pte.ppn[8:0] != '0) begin
                                 state_d             = PROPAGATE_ERROR;
                                 dtlb_update_o.valid = 1'b0;

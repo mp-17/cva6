@@ -637,9 +637,7 @@ module issue_read_operands
   ) && !$isunknown(
       operand_b_q
   )))
-  else $warning("Got unknown value in one of the operands");
+  else $fatal("Got unknown value in one of the operands");
 
   //pragma translate_on
 endmodule
-
-

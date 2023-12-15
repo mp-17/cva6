@@ -535,7 +535,7 @@ module issue_read_operands import ariane_pkg::*; #(
 
     assert property (
         @(posedge clk_i) (branch_valid_q) |-> (!$isunknown(operand_a_q) && !$isunknown(operand_b_q)))
-        else $warning ("Got unknown value in one of the operands");
+        else $fatal (1, "Got unknown value in one of the operands");
 
     //pragma translate_on
 endmodule

@@ -132,12 +132,6 @@ module cva6
     // Debug (async) request - SUBSYSTEM
     input logic debug_req_i,
 `ifdef ARIANE_ACCELERATOR_PORT
-    // Invalidation requests
-    output logic                         acc_cons_en_o,
-    input  logic [63:0]                  inval_addr_i,
-    input  logic                         inval_valid_i,
-    output logic                         inval_ready_o,
-
     // CSR to accelerator
     output logic                            en_ld_st_translation_o,
 

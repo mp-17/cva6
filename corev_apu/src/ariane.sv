@@ -38,6 +38,24 @@ module ariane import ariane_pkg::*; #(
   // Timer facilities
   input  logic                         time_irq_i,   // timer interrupt in (async)
   input  logic                         debug_req_i,  // debug request (async)
+`ifdef ARIANE_ACCELERATOR_PORT
+  // CSR to accelerator
+  output logic                            en_ld_st_translation_o,
+
+  // MMU interface with accelerator
+  input  exception_t                      acc_mmu_misaligned_ex_i,
+  input  logic                            acc_mmu_req_i,        // request address translation
+  input  logic [riscv::VLEN-1:0]          acc_mmu_vaddr_i,      // virtual address in
+  input  logic                            acc_mmu_is_store_i,   // the translation is requested by a store
+  // if we need to walk the page table we can't grant in the same cycle
+  // Cycle 0
+  output logic                            acc_mmu_dtlb_hit_o,   // sent in the same cycle as the request if translation hits in the DTLB
+  output logic [riscv::PPNW-1:0]          acc_mmu_dtlb_ppn_o,   // ppn (send same cycle as hit)
+  // Cycle 1
+  output logic                            acc_mmu_valid_o,      // translation is valid
+  output logic [riscv::PLEN-1:0]          acc_mmu_paddr_o,      // translated address
+  output exception_t                      acc_mmu_exception_o,  // address translation threw an exception
+`endif
   // RISC-V formal interface port (`rvfi`):
   // Can be left open when formal tracing is not needed.
   output rvfi_probes_t rvfi_probes_o,
@@ -76,6 +94,19 @@ module ariane import ariane_pkg::*; #(
     .clic_kill_req_i      ( 1'b0                      ),
     .clic_kill_ack_o      (                           ),
     .rvfi_probes_o        ( rvfi_probes_o             ),
+`ifdef ARIANE_ACCELERATOR_PORT
+    .en_ld_st_translation_o (en_ld_st_translation_o ),
+    .acc_mmu_misaligned_ex_i(mmu_misaligned_ex_i),
+    .acc_mmu_req_i          (mmu_req_i          ),
+    .acc_mmu_vaddr_i        (mmu_vaddr_i        ),
+    .acc_mmu_is_store_i     (mmu_is_store_i     ),
+    .acc_mmu_dtlb_hit_o     (mmu_dtlb_hit_o     ),
+    .acc_mmu_dtlb_ppn_o     (mmu_dtlb_ppn_o     ),
+    .acc_mmu_valid_o        (mmu_valid_o        ),
+    .acc_mmu_paddr_o        (mmu_paddr_o        ),
+    .acc_mmu_exception_o    (mmu_exception_o    ),
+`endif
+
     .cvxif_req_o          ( cvxif_req                 ),
     .cvxif_resp_i         ( cvxif_resp                ),
     .noc_req_o            ( noc_req_o                 ),

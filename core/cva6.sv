@@ -131,7 +131,6 @@ module cva6
     input logic time_irq_i,
     // Debug (async) request - SUBSYSTEM
     input logic debug_req_i,
-`ifdef ARIANE_ACCELERATOR_PORT
     // CSR to accelerator
     output logic                            en_ld_st_translation_o,
 
@@ -148,7 +147,7 @@ module cva6
     output logic                            acc_mmu_valid_o,      // translation is valid
     output logic [riscv::PLEN-1:0]          acc_mmu_paddr_o,      // translated address
     output exception_t                      acc_mmu_exception_o,  // address translation threw an exception
-`endif
+
     // CLIC interface
     input logic clic_irq_valid_i,  // CLIC interrupt request
     input logic [$clog2(CVA6Cfg.CLICNumInterruptSrc)-1:0] clic_irq_id_i,  // interrupt source ID

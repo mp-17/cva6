@@ -271,7 +271,7 @@ module acc_dispatcher
           tval2 : '0,
           tinst : '0,
           gva   : '0,
-          valid : acc_resp_i.error
+          valid : acc_resp_i.exception
       };
   assign acc_fflags_valid_o = acc_resp_i.fflags_valid;
   assign acc_fflags_o       = acc_resp_i.fflags;

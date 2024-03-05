@@ -190,7 +190,7 @@ module load_store_unit
   logic                   st_hs_ld_st_inst;
   logic                   st_hlvx_inst;
   logic                   cva6_translation_req, acc_translation_req, translation_req;
-  logic                   cva6_translation_valid, acc_translataion_valid, translation_valid;
+  logic                   cva6_translation_valid, acc_translation_valid, translation_valid;
   logic [riscv::VLEN-1:0] cva6_mmu_vaddr, acc_mmu_vaddr, mmu_vaddr;
   logic [riscv::PLEN-1:0] cva6_mmu_paddr, acc_mmu_paddr, mmu_paddr, mmu_vaddr_plen, fetch_vaddr_plen;
   logic         [  riscv::XLEN-1:0] mmu_tinst;
@@ -344,11 +344,11 @@ module load_store_unit
     always_ff @(posedge clk_i or negedge rst_ni) begin
       if (~rst_ni) begin
         cva6_mmu_paddr         <= '0;
-        cva6_translataion_valid <= '0;
+        cva6_translation_valid <= '0;
         cva6_mmu_exception     <= '0;
       end else begin
         cva6_mmu_paddr         <= mmu_vaddr_plen;
-        cva6_translataion_valid <= cva6_translation_req;
+        cva6_translation_valid <= cva6_translation_req;
         cva6_mmu_exception     <= cva6_misaligned_exception;
       end
     end

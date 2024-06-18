@@ -26,7 +26,7 @@ package acc_pkg;
     logic [riscv::PPNW-1:0] acc_mmu_dtlb_ppn;
     logic                   acc_mmu_valid;
     logic [riscv::PLEN-1:0] acc_mmu_paddr;
-    exception_t             acc_mmu_exception;
+    ariane_pkg::exception_t acc_mmu_exception;
   } acc_mmu_resp_t;
 
   // ----------------------

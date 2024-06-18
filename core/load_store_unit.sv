@@ -74,8 +74,8 @@ module load_store_unit
     input logic en_ld_st_g_translation_i, // enable G-stage translation for load/stores
 
     // Accelerator request for CVA6's MMU
-    input  acc_mmu_req_t acc_mmu_req_i,
-    output acc_mmu_resp_t acc_mmu_resp_o,
+    input  acc_pkg::acc_mmu_req_t acc_mmu_req_i,
+    output acc_pkg::acc_mmu_resp_t acc_mmu_resp_o,
 
     // Instruction cache input request - CACHES
     input  icache_arsp_t icache_areq_i,
@@ -170,7 +170,7 @@ module load_store_unit
   logic                   st_valid_i;
   logic                   ld_valid_i;
   logic                   ld_translation_req;
-￼ logic                   cva6_st_translation_req, acc_st_translation_req, st_translation_req;
+  logic                   cva6_st_translation_req, acc_st_translation_req, st_translation_req;
   logic [riscv::VLEN-1:0] ld_vaddr;
   logic [riscv::XLEN-1:0] ld_tinst;
   logic                   ld_hs_ld_st_inst;
@@ -179,16 +179,16 @@ module load_store_unit
   logic [riscv::XLEN-1:0] st_tinst;
   logic                   st_hs_ld_st_inst;
   logic                   st_hlvx_inst;
-￼ logic                   cva6_translation_req, acc_translation_req, translation_req;
-￼ logic                   cva6_translation_valid, acc_translataion_valid, translation_valid;
-￼ logic [riscv::VLEN-1:0] cva6_mmu_vaddr, acc_mmu_vaddr, mmu_vaddr;
-￼ logic [riscv::PLEN-1:0] cva6_mmu_paddr, acc_mmu_paddr, mmu_paddr, mmu_vaddr_plen, fetch_vaddr_plen;
+  logic                   cva6_translation_req, acc_translation_req, translation_req;
+  logic                   cva6_translation_valid, acc_translataion_valid, translation_valid;
+  logic [riscv::VLEN-1:0] cva6_mmu_vaddr, acc_mmu_vaddr, mmu_vaddr;
+  logic [riscv::PLEN-1:0] cva6_mmu_paddr, acc_mmu_paddr, mmu_paddr, mmu_vaddr_plen, fetch_vaddr_plen;
   logic         [  riscv::XLEN-1:0] mmu_tinst;
   logic                             mmu_hs_ld_st_inst;
   logic                             mmu_hlvx_inst;
   exception_t                       cva6_mmu_exception, acc_mmu_exception, mmu_exception;
-￼ logic                             cva6_dtlb_hit, acc_dtlb_hit, dtlb_hit;
-￼ logic [riscv::PPNW-1:0]           cva6_dtlb_ppn, acc_dtlb_ppn, dtlb_ppn;
+  logic                             cva6_dtlb_hit, acc_dtlb_hit, dtlb_hit;
+  logic [riscv::PPNW-1:0]           cva6_dtlb_ppn, acc_dtlb_ppn, dtlb_ppn;
 
   logic                             ld_valid;
   logic         [TRANS_ID_BITS-1:0] ld_trans_id;
@@ -349,13 +349,13 @@ module load_store_unit
   if (CVA6Cfg.EnableAccelerator) begin
     // The MMU can be connected to CVA6 or the ACCELERATOR
     enum logic {CVA6, ACC} mmu_state_d, mmu_state_q;
-￼   always_ff @(posedge clk_i or negedge rst_ni) begin
-￼     if (~rst_ni) begin
-￼       mmu_state_q <= CVA6;
-￼     end else begin
-￼       mmu_state_q <= mmu_state_d;
-￼     end
-￼   end
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (~rst_ni) begin
+        mmu_state_q <= CVA6;
+      end else begin
+        mmu_state_q <= mmu_state_d;
+      end
+    end
 
     // Straightforward and slow-reactive MMU arbitration logic
     // This logic can be optimized to reduce answer latency and contention
@@ -363,63 +363,73 @@ module load_store_unit
       // Maintain state
       mmu_state_d = mmu_state_q;
 
-
       // Serve CVA6 and gate the accelerator by default
       // MMU input
-      misaligned_exception   = cva6_misaligned_exception;
-      st_translation_req     = cva6_st_translation_req;
-      translation_req        = cva6_translation_req;
-      mmu_vaddr              = cva6_mmu_vaddr;
+      misaligned_exception             = cva6_misaligned_exception;
+      st_translation_req               = cva6_st_translation_req;
+      translation_req                  = cva6_translation_req;
+      mmu_vaddr                        = cva6_mmu_vaddr;
       // MMU output
-      cva6_translation_valid = translation_valid;
-      cva6_mmu_paddr         = mmu_paddr;
-      cva6_mmu_exception     = mmu_exception;
-      cva6_dtlb_hit          = dtlb_hit;
-      cva6_dtlb_ppn          = dtlb_ppn;
-      acc_mmu_valid_o        = '0;
-      acc_mmu_paddr_o        = '0;
-      acc_mmu_exception_o    = '0;
-      acc_mmu_dtlb_hit_o     = '0;
-      acc_mmu_dtlb_ppn_o     = '0;
+      cva6_translation_valid           = translation_valid;
+      cva6_mmu_paddr                   = mmu_paddr;
+      cva6_mmu_exception               = mmu_exception;
+      cva6_dtlb_hit                    = dtlb_hit;
+      cva6_dtlb_ppn                    = dtlb_ppn;
+      acc_mmu_resp_o.acc_mmu_valid     = '0;
+      acc_mmu_resp_o.acc_mmu_paddr     = '0;
+      acc_mmu_resp_o.acc_mmu_exception = '0;
+      acc_mmu_resp_o.acc_mmu_dtlb_hit  = '0;
+      acc_mmu_resp_o.acc_mmu_dtlb_ppn  = '0;
 
       unique case (mmu_state_q)
         CVA6: begin
           // Only the accelerator is requesting, and the lsu bypass queue is empty.
-          if (acc_mmu_req_i && !lsu_valid_i && lsu_ready_o) begin
+          if (acc_mmu_req_i.acc_mmu_req && !lsu_valid_i && lsu_ready_o) begin
             // Lock the MMU to the accelerator.
             // If the issue stage is firing a mem op in this cycle,
             // the bypass queue will buffer it.
             mmu_state_d = ACC;
           end
-￼         // Make this a mealy FSM to cut some latency.
-￼         // It should be okay timing-wise since cva6's requests already
-￼         // depend on lsu_valid_i. Moreover, lsu_ready_o is sequentially
-￼         // generated by the bypass and, in this first implementation,
-￼         // the acc request already depends combinatorially upon acc_mmu_req_i.
+          // Make this a mealy FSM to cut some latency.
+          // It should be okay timing-wise since cva6's requests already
+          // depend on lsu_valid_i. Moreover, lsu_ready_o is sequentially
+          // generated by the bypass and, in this first implementation,
+          // the acc request already depends combinatorially upon acc_mmu_req_i.acc_mmu_req.
         end
         ACC: begin
           // MMU input
-          misaligned_exception   = acc_mmu_misaligned_ex_i;
-          st_translation_req     = acc_mmu_is_store_i;
-          translation_req        = acc_mmu_req_i;
-          mmu_vaddr              = acc_mmu_vaddr_i;
+          misaligned_exception             = acc_mmu_req_i.acc_mmu_misaligned_ex;
+          st_translation_req               = acc_mmu_req_i.acc_mmu_is_store;
+          translation_req                  = acc_mmu_req_i.acc_mmu_req;
+          mmu_vaddr                        = acc_mmu_req_i.acc_mmu_vaddr;
           // MMU output
-          acc_mmu_valid_o        = translation_valid;
-          acc_mmu_paddr_o        = mmu_paddr;
-          acc_mmu_exception_o    = mmu_exception;
-          acc_mmu_dtlb_hit_o     = dtlb_hit;
-          acc_mmu_dtlb_ppn_o     = dtlb_ppn;
-          cva6_translation_valid = '0;
-          cva6_mmu_paddr         = '0;
-          cva6_mmu_exception     = '0;
-          cva6_dtlb_hit          = '0;
-          cva6_dtlb_ppn          = '0;
+          acc_mmu_resp_o.acc_mmu_valid     = translation_valid;
+          acc_mmu_resp_o.acc_mmu_paddr     = mmu_paddr;
+          acc_mmu_resp_o.acc_mmu_exception = mmu_exception;
+          acc_mmu_resp_o.acc_mmu_dtlb_hit  = dtlb_hit;
+          acc_mmu_resp_o.acc_mmu_dtlb_ppn  = dtlb_ppn;
+          cva6_translation_valid           = '0;
+          cva6_mmu_paddr                   = '0;
+          cva6_mmu_exception               = '0;
+          cva6_dtlb_hit                    = '0;
+          cva6_dtlb_ppn                    = '0;
           // Get back to CVA6 after the translation
           if (translation_valid) mmu_state_d = CVA6;
         end
         default: mmu_state_d = CVA6;
       endcase
     end
+
+    always_comb begin
+      // Feed forward
+      lsu_ctrl = lsu_ctrl_byp;
+      // Mask the lsu valid so that cva6's req gets buffered in the
+      // bypass queue when the MMU is being used by the accelerator.
+      lsu_ctrl.valid = (mmu_state_q == ACC) ? 1'b0 : lsu_ctrl_byp.valid;
+    end
+  end else begin
+    assign acc_mmu_resp_o = '0;
+    assign lsu_ctrl       = lsu_ctrl_byp;
   end
 
   logic store_buffer_empty;
@@ -760,16 +770,6 @@ module load_store_unit
       .ready_o   (lsu_ready_o),
       .*
   );
-
-  always_comb begin
-    // Feed forward
-    lsu_ctrl = lsu_ctrl_byp;
-    if (CVA6Cfg.EnableAccelerator) begin
-      // Mask the lsu valid so that cva6's req gets buffered in the
-      // bypass queue when the MMU is being used by the accelerator.
-      lsu_ctrl.valid = (mmu_state_q == ACC) ? 1'b0 : lsu_ctrl_byp.valid;
-    end
-  end
 
   assign rvfi_lsu_ctrl_o = lsu_ctrl;
 

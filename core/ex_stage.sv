@@ -144,8 +144,8 @@ module ex_stage
     // accelerate port result is valid - ACC_DISPATCHER
     input  logic                                                        acc_valid_i,
     // Accelerator MMU access
-    input  acc_mmu_req_t                                                acc_mmu_req_i,
-    output acc_mmu_resp_t                                               acc_mmu_resp_i,
+    input  acc_pkg::acc_mmu_req_t                                       acc_mmu_req_i,
+    output acc_pkg::acc_mmu_resp_t                                      acc_mmu_resp_o,
     // Enable virtual memory translation - CSR_REGFILE
     input  logic                                                        enable_translation_i,
     // TO_BE_COMPLETED - CSR_REGFILE

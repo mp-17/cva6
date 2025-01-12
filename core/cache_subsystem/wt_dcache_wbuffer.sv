@@ -595,7 +595,7 @@ module wt_dcache_wbuffer
             if (CVA6Cfg.DATA_USER_EN) begin
               wbuffer_d[wr_ptr].user[k*8+:8] = req_port_i.data_wuser[k*8+:8];
             end else begin
-              wbuffer_d[wr_ptr].user[k*8+:8] = '0;
+              wbuffer_d[wr_ptr].user = '0;
             end
           end
         end
